@@ -44,6 +44,7 @@
 
 #include <string>
 #include <fstream>
+#include <algorithm>
 
 #include <vtkCellType.h>
 #include <vtkFloatArray.h>
@@ -77,22 +78,43 @@ using     std::ifstream;
 avtJHM_ReaderFileFormat::avtJHM_ReaderFileFormat(const char *filename)
     : avtSTSDFileFormat (filename)
 {
-	nvectors = -2;
-	ifstream jhm_infile (filename);
-	getline (jhm_infile, pts_filename);
-	getline (jhm_infile, elem_filename);
-	jhm_infile >> nvectors;
-	if (nvectors != 0)
-		getline (jhm_infile, lon_filename);
-	if (nvectors < -1 || nvectors > 2)
-	{
-		jhm_infile.close ();
-		EXCEPTION1(InvalidDBTypeException, "The number of vector variables is unreadable or incorrect (expected -1, 0, 1 or 2).");
+	elem_filename = filename;
+	int ext = elem_filename.rfind('.');
+	if (ext == string::npos) {
+		EXCEPTION1(InvalidDBTypeException, ("Can't find model name in " + elem_filename).c_str());
+		return;
 	}
-	else if (nvectors == -1)
+	pts_filename = elem_filename.substr(0,ext) + ".pts";
+	lon_filename = elem_filename.substr(0,ext) + ".lon";
+	ifstream lon_infile (lon_filename.c_str());
+	if (!lon_infile.is_open ())
 	{
-		ifstream lon_infile (lon_filename.c_str());
-		lon_infile >> nvectors;
+		nvectors = 0;
+		return;
+	}
+	string header;
+	getline (lon_infile, header);
+	nvectors = -1;
+	lon_header = false;
+	if (header.size() == 1) {
+		if (header == "1") {
+			nvectors = 1;
+		} else if (header == "2") {
+			nvectors = 2;
+		} else {
+			EXCEPTION1(InvalidDBTypeException, ("Incorrect lon header in '" + lon_filename + "'. Expected '1' or '2'.").c_str());
+			return;
+		}
+		lon_header = true;
+	}
+
+	stringstream ss (header);
+	float in;
+	ss >> in >> in >> in;
+	if (ss.eof()) {
+		nvectors = 1;
+	} else {
+		nvectors = 2;
 	}
 }
 
@@ -389,6 +411,15 @@ avtJHM_ReaderFileFormat::GetMesh(const char *meshname)
 		}
 		
 		elem_infile >> *data_region++;
+
+		if (cellType == VTK_HEXAHEDRON)
+		{
+			std::swap (verts[5], verts[7]);
+		}
+		else if (cellType == VTK_WEDGE)
+		{
+			std::swap (verts[4], verts[5]);
+		}
 		ugrid->InsertNextCell (cellType, nverts, verts);
 	}
 
@@ -464,6 +495,12 @@ avtJHM_ReaderFileFormat::GetVectorVar(const char *varname)
 	}
 
 	ifstream lon_infile (lon_filename.c_str());
+	
+	if (lon_header)
+	{
+		int header;
+		lon_infile >> header;
+	}
 
 	vtkFloatArray *arr = vtkFloatArray::New ();
 	arr->SetNumberOfComponents (3);

@@ -103,6 +103,7 @@ class avtJHM_ReaderFileFormat : public avtSTSDFileFormat
 	int ncells; // how many polyhedra there are, total
 	string pts_filename, elem_filename, lon_filename;
 	vtkIntArray *arr_region;
+	bool lon_header;
 };
 
 
