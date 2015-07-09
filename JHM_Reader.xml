@@ -1,0 +1,14 @@
+<?xml version="1.0"?>
+  <Plugin name="JHM_Reader" type="database" label="Johns Hopkins Mesh Reader" version="1.0" enabled="true" mdspecificcode="false" engspecificcode="false" onlyengine="false" noengine="false" dbtype="STSD" haswriter="false" hasoptions="false" filePatternsStrict="false" opensWholeDirectory="false">
+    <CXXFLAGS>
+      -I/usr/include/vtk-6.1
+    </CXXFLAGS>
+    <LIBS>
+      /opt/visit/2.9.1/linux-x86_64/lib/libvisit_verdict.so
+    </LIBS>
+    <FilePatterns>
+      jhm
+    </FilePatterns>
+    <Attribute name="" purpose="" persistent="true" keyframe="true" exportAPI="" exportInclude="">
+    </Attribute>
+  </Plugin>
